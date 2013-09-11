@@ -2,6 +2,8 @@
 ## NAME: Sander in 't Veld
 ## STUDENT ID: 10277935
 
+import socket
+
 def serve(port, public_html, cgibin):
 	"""
 	The entry point of the HTTP server.
@@ -11,7 +13,19 @@ def serve(port, public_html, cgibin):
 	"""
 	print "[ start ]"
 	
-	pass
+	s = socket.socket()
+	host = socket.gethostname()
+	s.bind((host, port))
+	
+	print "Listening as {h} on port {p}...".format(h=host, p=port)
+	
+	s.listen(1)
+	while True:
+	  c, addr = s.accept()
+	  print "A client at {a} connected.".format(a=addr)
+	  c.send("Hey there, farmer!")
+	  c.close()
+	#.
 	
 	print "[ done ]"
 	return

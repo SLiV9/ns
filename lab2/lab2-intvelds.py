@@ -3,6 +3,7 @@
 ## STUDENT ID: 10277935
 
 import socket
+import mimetypes
 
 def serve(port, public_html, cgibin):
 	"""
@@ -29,19 +30,31 @@ def serve(port, public_html, cgibin):
 	  print "\t[start]"
 	  
 	  msg, leftover = getline(c, "")
-	  print "@msg@{s}@msg@".format(s=msg)
-	  print "@leftover@{s}@leftover@".format(s=leftover)
 	  
 	  method, uri, vers = msg.split(" ", 3)
 	  if (method == "GET"):
-	    if (os.path.isfile(public_html + uri)):
-	      c.send("The file exists!")
+	    fname = public_html + uri
+	    if (uri[-1] == '/'):
+	      fname += "index.html"
+	    print "The client requested: " + fname
+	    if (os.path.isfile(fname)):
+	      c.send("HTTP/1.1 200 OK.")
+	      c.send("Connection: close\r\n")
+	      c.send("Content-Length: " + str(os.path.getsize(fname)) + "\r\n")
+	      filetype, fileenc = mimetypes.guess_type(fname)
+	      c.send("Content-Type: " + str(filetype) + "; " + str(fileenc) + "\r\n")
+	      c.send("\r\n")
+	      with open(fname, 'rb') as f:
+	        c.send(f.read())
+	      c.send("\r\n")
 	    else:
 	      c.send("HTTP/1.1 404 File not found.\r\n")
+	      c.send("Connection: close\r\n")
+	      c.send("\r\n")
 	  else:
 	    c.send("HTTP/1.1 501 Method not implemented.\r\n")
+	    c.send("Connection: close\r\n")
 	    c.send("\r\n")
-	  
 	  print "\t[end]"
 	  c.close()
 	#.
@@ -49,10 +62,8 @@ def serve(port, public_html, cgibin):
 	print "[ done ]"
 	return
 	
+# Get a full line of code from the buffer, that is until a CRLF (or LF).
 def getline(c, leftover):
-  """
-  Get a full line from the client c, i.e. a string that ends at CLRF.
-  """
   msg = leftover
   endx = msg.find("\n")
   while (endx < 0):

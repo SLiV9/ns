@@ -4,6 +4,7 @@
 
 import socket
 import mimetypes
+import subprocess
 
 def serve(port, public_html, cgibin):
 	"""
@@ -38,19 +39,36 @@ def serve(port, public_html, cgibin):
 	      fname += "index.html"
 	    print "The client requested: " + fname
 	    if (os.path.isfile(fname)):
-	      c.send("HTTP/1.1 200 OK.")
-	      c.send("Connection: close\r\n")
-	      c.send("Content-Length: " + str(os.path.getsize(fname)) + "\r\n")
-	      filetype, fileenc = mimetypes.guess_type(fname)
-	      c.send("Content-Type: " + str(filetype) + "; " + str(fileenc) + "\r\n")
-	      c.send("\r\n")
-	      with open(fname, 'rb') as f:
-	        c.send(f.read())
-	      c.send("\r\n")
-	    else:
-	      c.send("HTTP/1.1 404 File not found.\r\n")
-	      c.send("Connection: close\r\n")
-	      c.send("\r\n")
+	      if (uri.find("/cgibin/") == 0):
+	        fname = cgibin + uri[7:]
+	        cgicmd = ["python", fname]
+	        print "The client wants to run: " + fname
+	        bfrname = ".temp"
+	        with open (bfrname, 'w') as f:
+	          subprocess.call(test, stdin=None, stdout=f)
+	        c.send("HTTP/1.1 200 OK.")
+	        c.send("Connection: close\r\n")
+	        c.send("Content-Length: " + str(os.path.getsize(bfrname) + "\r\n")
+	        filetype, fileenc = mimetypes.guess_type(bfrname)
+	        c.send("Content-Type: " + str(filetype) + "; " + str(fileenc) + "\r\n")
+	        c.send("\r\n")
+	        with open (bfrname, 'r') as f:
+            c.send(f.read())
+	        c.send("\r\n")
+	      else:
+	        c.send("HTTP/1.1 200 OK.")
+	        c.send("Connection: close\r\n")
+	        c.send("Content-Length: " + str(os.path.getsize(fname)) + "\r\n")
+	        filetype, fileenc = mimetypes.guess_type(fname)
+	        c.send("Content-Type: " + str(filetype) + "; " + str(fileenc) + "\r\n")
+	        c.send("\r\n")
+	        with open(fname, 'rb') as f:
+	          c.send(f.read())
+	        c.send("\r\n")
+      else:
+        c.send("HTTP/1.1 404 File not found.\r\n")
+        c.send("Connection: close\r\n")
+        c.send("\r\n")
 	  else:
 	    c.send("HTTP/1.1 501 Method not implemented.\r\n")
 	    c.send("Connection: close\r\n")

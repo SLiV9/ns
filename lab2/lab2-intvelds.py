@@ -35,7 +35,7 @@ def serve(port, public_html, cgibin):
 
 		if (method == "GET"):
 
-			filefound = True
+			filefound = False
 
 			if (uri.find("/cgibin/") == 0):
 				## CGIBIN RESPONSE
@@ -44,18 +44,26 @@ def serve(port, public_html, cgibin):
 				print "The client wants to run: " + fname
 
 				if (os.path.isfile(fname)):
+					filefound = True
+
 					bfrname = ".temp"
 					with open (bfrname, 'w') as f:
-						subprocess.call(test, stdin=None, stdout=f)
+						subprocess.call(cgicmd, stdin=None, stdout=f)
 
 					c.send("HTTP/1.1 200 OK.")
 					c.send("Connection: close\r\n")
-					c.send("Content-Length: " + str(os.path.getsize(bfrname)) + "\r\n")
-					filetype, fileenc = mimetypes.guess_type(bfrname)
-					c.send("Content-Type: " + str(filetype) + "; " + str(fileenc) + "\r\n")
-					c.send("\r\n")
+					fileheader = "text"
+					body = ""
 					with open(bfrname, 'r') as f:
-						c.send(f.read())
+						fileheader = f.readline()
+						body = f.read()
+					filesize = os.path.getsize(bfrname)
+					c.send("Content-Length: " + str(filesize) + "\r\n")
+					filetype = fileheader[:fileheader.find(" ")]
+					c.send("Content-Type: " + str(filetype) + "\r\n")
+					print "@ " + str(filesize) + " @ " + str(filetype)
+					c.send("\r\n")
+					c.send(body)
 					c.send("\r\n")
 				#end if file exists
 
@@ -68,11 +76,14 @@ def serve(port, public_html, cgibin):
 				print "The client requested: " + fname
 
 				if (os.path.isfile(fname)):
+					filefound = True
+
 					c.send("HTTP/1.1 200 OK.")
 					c.send("Connection: close\r\n")
-					c.send("Content-Length: " + str(os.path.getsize(fname)) + "\r\n")
+					filesize = os.path.getsize(fname)
+					c.send("Content-Length: " + str(filesize) + "\r\n")
 					filetype, fileenc = mimetypes.guess_type(fname)
-					c.send("Content-Type: " + str(filetype) + "; " + str(fileenc) + "\r\n")
+					c.send("Content-Type: " + str(filetype) + "\r\n")
 					c.send("\r\n")
 					with open(fname, 'rb') as f:
 						c.send(f.read())

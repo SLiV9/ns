@@ -14,7 +14,7 @@ def serve(port, public_html, cgibin):
 	cgibin: The directory where all CGI scripts are stored.
 	"""
 	print "[ start ]"
-	
+
 	## Get socket.
 	s = socket.socket()
 	host = socket.gethostname()
@@ -26,69 +26,89 @@ def serve(port, public_html, cgibin):
 	
 	s.listen(1)
 	while True:
-	  c, addr = s.accept()
-	  print "A client at {a} connected.".format(a=addr)
-	  print "\t[start]"
-	  
-	  msg, leftover = getline(c, "")
-	  
-	  method, uri, vers = msg.split(" ", 3)
-	  if (method == "GET"):
-	    fname = public_html + uri
-	    if (uri[-1] == '/'):
-	      fname += "index.html"
-	    print "The client requested: " + fname
-	    if (os.path.isfile(fname)):
-	      if (uri.find("/cgibin/") == 0):
-	        fname = cgibin + uri[7:]
-	        cgicmd = ["python", fname]
-	        print "The client wants to run: " + fname
-	        bfrname = ".temp"
-	        with open (bfrname, 'w') as f:
-	          subprocess.call(test, stdin=None, stdout=f)
-	        c.send("HTTP/1.1 200 OK.")
-	        c.send("Connection: close\r\n")
-	        c.send("Content-Length: " + str(os.path.getsize(bfrname) + "\r\n")
-	        filetype, fileenc = mimetypes.guess_type(bfrname)
-	        c.send("Content-Type: " + str(filetype) + "; " + str(fileenc) + "\r\n")
-	        c.send("\r\n")
-	        with open (bfrname, 'r') as f:
-            c.send(f.read())
-	        c.send("\r\n")
-	      else:
-	        c.send("HTTP/1.1 200 OK.")
-	        c.send("Connection: close\r\n")
-	        c.send("Content-Length: " + str(os.path.getsize(fname)) + "\r\n")
-	        filetype, fileenc = mimetypes.guess_type(fname)
-	        c.send("Content-Type: " + str(filetype) + "; " + str(fileenc) + "\r\n")
-	        c.send("\r\n")
-	        with open(fname, 'rb') as f:
-	          c.send(f.read())
-	        c.send("\r\n")
-      else:
-        c.send("HTTP/1.1 404 File not found.\r\n")
-        c.send("Connection: close\r\n")
-        c.send("\r\n")
-	  else:
-	    c.send("HTTP/1.1 501 Method not implemented.\r\n")
-	    c.send("Connection: close\r\n")
-	    c.send("\r\n")
-	  print "\t[end]"
-	  c.close()
-	#.
-	
+		c, addr = s.accept()
+		print "A client at {a} connected.".format(a=addr)
+		print "\t[start]"
+
+		msg, leftover = getline(c, "")
+		method, uri, vers = msg.split(" ", 3)
+
+		if (method == "GET"):
+
+			filefound = True
+
+			if (uri.find("/cgibin/") == 0):
+				## CGIBIN RESPONSE
+				fname = cgibin + uri[7:]
+				cgicmd = ["python", fname]
+				print "The client wants to run: " + fname
+
+				if (os.path.isfile(fname)):
+					bfrname = ".temp"
+					with open (bfrname, 'w') as f:
+						subprocess.call(test, stdin=None, stdout=f)
+
+					c.send("HTTP/1.1 200 OK.")
+					c.send("Connection: close\r\n")
+					c.send("Content-Length: " + str(os.path.getsize(bfrname)) + "\r\n")
+					filetype, fileenc = mimetypes.guess_type(bfrname)
+					c.send("Content-Type: " + str(filetype) + "; " + str(fileenc) + "\r\n")
+					c.send("\r\n")
+					with open(bfrname, 'r') as f:
+						c.send(f.read())
+					c.send("\r\n")
+				#end if file exists
+
+				## END CGIBIN RESPONSE
+			else:
+				## NORMAL RESPONSE
+				fname = public_html + uri
+				if (uri[-1] == '/'):
+					fname += "index.html"
+				print "The client requested: " + fname
+
+				if (os.path.isfile(fname)):
+					c.send("HTTP/1.1 200 OK.")
+					c.send("Connection: close\r\n")
+					c.send("Content-Length: " + str(os.path.getsize(fname)) + "\r\n")
+					filetype, fileenc = mimetypes.guess_type(fname)
+					c.send("Content-Type: " + str(filetype) + "; " + str(fileenc) + "\r\n")
+					c.send("\r\n")
+					with open(fname, 'rb') as f:
+						c.send(f.read())
+					c.send("\r\n")
+				#end if file exists
+
+				## END NORMAL RESPONSE
+			#end if cgibin
+
+		else:
+			c.send("HTTP/1.1 501 Method not implemented.\r\n")
+			c.send("Connection: close\r\n")
+			c.send("\r\n")
+		#end if method
+
+		if (filefound == False):
+			c.send("HTTP/1.1 404 File not found.\r\n")
+			c.send("Connection: close\r\n")
+			c.send("\r\n")
+		#end if file exists
+
+		print "\t[end]"
+		c.close()
+	#end while True
+
 	print "[ done ]"
 	return
 	
 # Get a full line of code from the buffer, that is until a CRLF (or LF).
 def getline(c, leftover):
-  msg = leftover
-  endx = msg.find("\n")
-  while (endx < 0):
-    msg += c.recv(8)
-    endx = msg.find("\n")
-  #.
-  return msg[0:endx], msg[endx+1:]
+	msg = leftover
+	endx = msg.find("\n")
+	while (endx < 0):
+		msg += c.recv(8)
+		endx = msg.find("\n")
+	return msg[0:endx], msg[endx+1:]
 
 ## This the entry point of the script.
 ## Do not change this part.

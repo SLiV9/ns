@@ -1,4 +1,5 @@
 import sys
+import socket
 
 # Read the enviroment variables.
 env = {}
@@ -30,6 +31,25 @@ while (len(querystring) > 0):
 	#end if find =
 #end while
 
+# Get a full line of code from the buffer, that is until a CRLF (or LF).
+def getline(s, leftover):
+	msg = leftover
+	endx = msg.find("\n")
+	while (endx < 0):
+		msg += s.recv(8)
+		endx = msg.find("\n")
+	leftover = msg[endx+1:]
+	msg = msg[0:endx]
+
+	if (msg.find(" ") >= 0):
+		status, text = msg.split(" ", 1)
+	else:
+		status = msg
+		text = ""
+	#end if find sp
+
+	return status, text, leftover
+
 body = "[ SMTP ]\r\n"
 ## START
 
@@ -40,6 +60,23 @@ body += "{ server: " + param.get("server", "<unknown>") + " }\r\n"
 body += "{ auth: " + param.get("auth", "<unknown>") + " }\r\n"
 body += "{ username: " + param.get("username", "<unknown>") + " }\r\n"
 body += "{ password: " + param.get("password", "<unknown>") + " }\r\n"
+
+if (len(param.get("server", "")) == 0):
+	body += "Fatal error: no server specified.\r\n"
+else:
+	server = param["server"]
+	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	s.connect((server, 25))
+
+	leftover = ""
+	while True:
+		status, text, leftover = getline(s, leftover)
+		body += "< " + status + ": " + text + "<\r\n"		
+		break
+	#end while
+
+	s.close()
+#end if serveraddr empty
 
 ## END
 body += "[ done ]\r\n"

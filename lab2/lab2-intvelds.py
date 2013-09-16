@@ -37,7 +37,7 @@ def serve(port, public_html, cgibin):
 
 			filefound = False
 
-			if (uri.find("/cgibin/") == 0):
+			if (uri.find("/cgibin/") == 0 or uri.find("/cgi-bin/") == 0):
 				## CGIBIN RESPONSE
 				fname = cgibin + uri[7:]
 				cgicmd = ["python", fname]
@@ -57,7 +57,7 @@ def serve(port, public_html, cgibin):
 					with open(bfrname, 'r') as f:
 						fileheader = f.readline()
 						body = f.read()
-					filesize = os.path.getsize(bfrname)
+					filesize = sys.getsizeof(body)
 					c.send("Content-Length: " + str(filesize) + "\r\n")
 					filetype = fileheader[:fileheader.find(" ")]
 					c.send("Content-Type: " + str(filetype) + "\r\n")

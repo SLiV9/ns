@@ -35,18 +35,41 @@ def serve(port, public_html, cgibin):
 
 		if (method == "GET"):
 
+			## if the uri 
 			if (uri.find("/cgibin/") == 0 or uri.find("/cgi-bin/") == 0):
 				## CGIBIN RESPONSE
 				uri = uri.replace("/cgi-bin/", "/cgibin/", 1)
-				fname = cgibin + uri[7:]
-				cgicmd = ["python", fname]
-				print "The client wants to run: " + fname
 
-				if (os.path.isfile(fname)):
-					bfrname = ".temp"
-					with open (bfrname, 'w') as f:
-						subprocess.call(cgicmd, stdin=None, stdout=f)
+				if (uri.find("?") >= 0):
+					uripart, querypart = uri.split("?", 1)
+				else:
+					uripart = uri
+					querypart = ""
+				#end if find ?
 
+				scriptname = cgibin + uripart[7:]
+				cgicmd = ["python", scriptname]
+				print "The client wants to run: " + scriptname
+				print "\t w/ querystring: " + querypart
+
+				if (os.path.isfile(scriptname)):
+					envpath = os.getenv("PATH", "")
+
+					argname = ".cgiarg"
+					with open (argname, 'w') as f:
+						f.write("DOCUMENT_ROOT=" + public_html + "\r\n")
+						f.write("REQUEST_METHOD=" + method + "\r\n")
+						f.write("REQUEST_URI=" + uripart + "\r\n")
+						f.write("QUERY_STRING=" + querypart + "\r\n")
+						f.write("PATH=" + envpath + "\r\n")
+						f.write("\r\n")
+
+					bfrname = ".cgibfr"
+					with open (argname, 'r') as fin, open (bfrname, 'w') as fout:
+						subprocess.call(cgicmd, stdin=fin, stdout=fout)
+
+					c.send("HTTP/1.1 200 OK.\r\n")
+					c.send("Connection: close\r\n")
 					with open(bfrname, 'rb') as f:
 						c.send(f.read())
 					c.send("\r\n")

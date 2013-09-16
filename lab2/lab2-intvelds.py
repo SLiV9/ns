@@ -39,6 +39,7 @@ def serve(port, public_html, cgibin):
 
 			if (uri.find("/cgibin/") == 0 or uri.find("/cgi-bin/") == 0):
 				## CGIBIN RESPONSE
+				uri = uri.replace("/cgi-bin/", "/cgibin/", 1)
 				fname = cgibin + uri[7:]
 				cgicmd = ["python", fname]
 				print "The client wants to run: " + fname
@@ -50,20 +51,8 @@ def serve(port, public_html, cgibin):
 					with open (bfrname, 'w') as f:
 						subprocess.call(cgicmd, stdin=None, stdout=f)
 
-					c.send("HTTP/1.1 200 OK.")
-					c.send("Connection: close\r\n")
-					fileheader = "text"
-					body = ""
-					with open(bfrname, 'r') as f:
-						fileheader = f.readline()
-						body = f.read()
-					filesize = sys.getsizeof(body)
-					c.send("Content-Length: " + str(filesize) + "\r\n")
-					filetype = fileheader[:fileheader.find(" ")]
-					c.send("Content-Type: " + str(filetype) + "\r\n")
-					print "@ " + str(filesize) + " @ " + str(filetype)
-					c.send("\r\n")
-					c.send(body)
+					with open(bfrname, 'rb') as f:
+						c.send(f.read())
 					c.send("\r\n")
 				#end if file exists
 
@@ -78,7 +67,7 @@ def serve(port, public_html, cgibin):
 				if (os.path.isfile(fname)):
 					filefound = True
 
-					c.send("HTTP/1.1 200 OK.")
+					c.send("HTTP/1.1 200 OK.\r\n")
 					c.send("Connection: close\r\n")
 					filesize = os.path.getsize(fname)
 					c.send("Content-Length: " + str(filesize) + "\r\n")
@@ -96,6 +85,8 @@ def serve(port, public_html, cgibin):
 		else:
 			c.send("HTTP/1.1 501 Method not implemented.\r\n")
 			c.send("Connection: close\r\n")
+			c.send("Content-Type: text/html\r\n")
+			c.send("Connect-Length: " + str(sys.getsizeof(defaulthtml501)) + "\r\n")
 			c.send("\r\n")
 		#end if method
 

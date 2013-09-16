@@ -35,8 +35,6 @@ def serve(port, public_html, cgibin):
 
 		if (method == "GET"):
 
-			filefound = False
-
 			if (uri.find("/cgibin/") == 0 or uri.find("/cgi-bin/") == 0):
 				## CGIBIN RESPONSE
 				uri = uri.replace("/cgi-bin/", "/cgibin/", 1)
@@ -45,8 +43,6 @@ def serve(port, public_html, cgibin):
 				print "The client wants to run: " + fname
 
 				if (os.path.isfile(fname)):
-					filefound = True
-
 					bfrname = ".temp"
 					with open (bfrname, 'w') as f:
 						subprocess.call(cgicmd, stdin=None, stdout=f)
@@ -54,6 +50,8 @@ def serve(port, public_html, cgibin):
 					with open(bfrname, 'rb') as f:
 						c.send(f.read())
 					c.send("\r\n")
+				else:
+					send_statuspage(c, 404)
 				#end if file exists
 
 				## END CGIBIN RESPONSE
@@ -65,8 +63,6 @@ def serve(port, public_html, cgibin):
 				print "The client requested: " + fname
 
 				if (os.path.isfile(fname)):
-					filefound = True
-
 					c.send("HTTP/1.1 200 OK.\r\n")
 					c.send("Connection: close\r\n")
 					filesize = os.path.getsize(fname)
@@ -77,24 +73,16 @@ def serve(port, public_html, cgibin):
 					with open(fname, 'rb') as f:
 						c.send(f.read())
 					c.send("\r\n")
+				else:
+					send_statuspage(c, 404)
 				#end if file exists
 
 				## END NORMAL RESPONSE
 			#end if cgibin
 
 		else:
-			c.send("HTTP/1.1 501 Method not implemented.\r\n")
-			c.send("Connection: close\r\n")
-			c.send("Content-Type: text/html\r\n")
-			c.send("Connect-Length: " + str(sys.getsizeof(defaulthtml501)) + "\r\n")
-			c.send("\r\n")
+			send_statuspage(c, 501)
 		#end if method
-
-		if (filefound == False):
-			c.send("HTTP/1.1 404 File not found.\r\n")
-			c.send("Connection: close\r\n")
-			c.send("\r\n")
-		#end if file exists
 
 		print "\t[end]"
 		c.close()
@@ -111,6 +99,32 @@ def getline(c, leftover):
 		msg += c.recv(8)
 		endx = msg.find("\n")
 	return msg[0:endx], msg[endx+1:]
+
+# Send a default status page, such as a 404.
+def send_statuspage(c, status):
+	if (status == 404):
+		name = "File Not Found"
+		desc = "The file you requested does not exist or could not be found."
+	elif (status == 501):
+		name = "Not Implemented"
+		desc = "The method you requested does not exist or has not been \
+		implemented."
+	else:
+		name = "Error"
+		desc = "An error has occured."
+	#end if status
+
+	page = "<h1>" + str(status) + " " + name + """</h1>
+	<p>""" + desc + "</p>"
+
+	c.send("HTTP/1.1 " + str(status) + " " + name + ".\r\n")
+	c.send("Connection: close\r\n")
+	c.send("Content-Type: text/html\r\n")
+	c.send("Connect-Length: " + str(sys.getsizeof(page)) + "\r\n")
+	c.send("\r\n")
+	c.send(page)
+	c.send("\r\n")
+	return
 
 ## This the entry point of the script.
 ## Do not change this part.

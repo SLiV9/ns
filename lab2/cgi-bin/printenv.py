@@ -1,5 +1,6 @@
 import sys
 
+# Read the enviroment variables.
 env = {}
 
 args = sys.stdin.read()
@@ -9,7 +10,7 @@ while (args.find("\r\n") >= 0):
 		vname, vval = line.split("=", 1)
 		env[vname] = vval
 	#end if find =
-#end while true
+#end while
 
 body = """<h1>Enviroment Variables</h1>"""
 

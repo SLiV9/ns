@@ -4,6 +4,110 @@
 import socket
 import select
 
+alice = ["ALICE", "BOB", "CAROL", "DAVE", "EVE", "FRANK", "IVAN", "TRUDY", "OSCAR", "PEGGY", "VICTOR", "WALTER", "MERLIN"]
+connected = []
+usernamelist = {}
+
+def standardname(r):
+	inx = (id(r) / 3) % 13
+	last = (id(r) / 39) % 4096
+	name = alice[inx] + hex(last)[2:]
+	return name
+
+def username(r):
+	return usernamelist.get(id(r), standardname(r))
+
+def set_username(r, name):
+	usernamelist[id(r)] = name
+	return
+
+def finduser(name):
+	for r in connected:
+		if (username(r) == name):
+			return r
+	return None
+
+def listofusers():
+	lou = ""
+	first = True
+	for r in connected:
+		if (not first):
+			lou += ", "
+		lou += username(r)
+		first = False
+	#end for
+	return lou
+
+def broadcast(msg):
+	for r in connected:
+		r.send(msg + "\n")
+	return
+
+def respond(r, msg):
+	r.send(msg + "\n")
+	return
+
+def handle_msg(r, msg):
+	if (msg.find("/") == 0):
+		msg = msg[1:]
+
+		if (msg.find(" ") > 0):
+			cmd, txt = msg.split(" ", 1)
+		else:
+			cmd = msg
+			txt = ""
+		
+		if (cmd == "say"):
+			broadcast("" + username(r) + ": " + txt + "")
+			print "Client '" + username(r) + "' said: '" + txt + "'"
+		elif (cmd == "whisper"):
+			if (txt.find(" ") > 0):
+				othername, txt = txt.split(" ", 1)
+				other = finduser(othername)
+				if (other):
+					if (other != r):
+						respond(other, "" + username(r) + " (whispers): " + txt)
+					respond(r, "" + username(r) + " (to " + othername + "): " + txt)
+					print "Client '" + username(r) + "' whispered to '" + othername \
+					+ "': '" + txt + "'"
+				else:
+					respond(r, "% Failure: unknown user '" + othername + "'.")
+					print "Client '" + username(r) + "' tried: '" + txt + "'; failed."
+			else:
+				respond(r, "% Failure: invalid syntax. Correct syntax: "
+				"'/whisper <user> <message>'.")
+				print "Client '" + username(r) + "' tried: '" + txt + "'; failed."
+		elif (cmd == "list"):
+			respond(r, "% Connected users: " + listofusers() + ".")
+			print "Client '" + username(r) + "' asked for a list of users."
+		elif (cmd == "nick"):
+			newname = txt.rstrip()
+			if (newname.isalnum()):
+				if (not finduser(newname)):
+					oldname = username(r)
+					set_username(r, newname)
+					broadcast("== " + oldname + " changed nickname to " + newname + ".")
+					print "Client '" + oldname + "' changed nick to '" \
+					+ txt + "'."
+				else:
+					respond(r, "% Failure: nickname '" + newname + "' already taken.")
+					print "Client '" + username(r) + "' tried to change nick to '" \
+					+ newname + "'; failed."
+			else:
+				respond(r, "% Failure: invalid syntax or not alphanumeric. "
+				"Correct syntax: '/nick <name>'.")
+				print "Client '" + username(r) + "' tried to empty nick; failed."
+		else:
+			respond(r, "% Failure: unknown command '" + cmd + "'.")
+			print "Client '" + username(r) + "' tried unknown command '" \
+			+ cmd + "'; failed."
+		#end if cmd
+
+	else:
+		print "Client '" + username(r) + "' tried: '" + msg + "'; failed."
+	return
+
+# Main method.
 def serve(port, cert, key):
 	"""
 	Chat server entry point.
@@ -17,17 +121,36 @@ def serve(port, cert, key):
 	s = socket.socket()
 	host = socket.gethostname()
 	s.bind((host, port))
-	## Set SO_REUSEADDR to prevent "socket already in use" errors during testing.
-	s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-	print "Listening as {h} on port {p}...".format(h=host, p=port)
+	print "Listening as " + str(host) + " on port " + str(port) + "..."
 
-	connected = [s]
 	s.listen(1)
 	while True:
-		rrdy, wrdy, err = select.select(connected, [], [])
-		for c in rrdy:
-			pass
-		#end for c
+
+		potred = [s]
+		potred.extend(connected)
+		rrdy, wrdy, err = select.select(potred, [], [])
+		for r in rrdy:
+			if (r == s):
+				c, addr = s.accept()
+				broadcast("++ " + username(c) + " connected.")
+				connected.append(c)
+				respond(c, "% Welcome, " + username(c) + "!")
+				respond(c, "% Connected users: " + listofusers() + ".")
+				print "Client '" + username(c) + "' at " + str(addr) + " connected."
+			else:
+				msg = r.recv(256)
+				msg = msg.rstrip()
+				if (len(msg) > 0):
+					# msg is an actual message from a client; handle it
+					handle_msg(r, msg)
+				else:
+					connected.remove(r)
+					broadcast("-- " + username(r) + " disconnected.")
+					print "Client '" + username(r) + "' disconnected."
+				#end if empty msg
+			#end if r=s
+		#end for r
+
 	#end while true
 
 	print "\n[ done ]"

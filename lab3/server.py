@@ -36,16 +36,15 @@ def listofusers():
 		lou += username(r)
 		first = False
 	#end for
-	lou += "."
 	return lou
 
 def broadcast(msg):
 	for r in connected:
-		r.send(msg)
+		r.send(msg + "\n")
 	return
 
 def respond(r, msg):
-	r.send(msg)
+	r.send(msg + "\n")
 	return
 
 def handle_msg(r, msg):
@@ -63,11 +62,14 @@ def handle_msg(r, msg):
 			print "Client '" + username(r) + "' said: '" + txt + "'"
 		elif (cmd == "whisper"):
 			if (txt.find(" ") > 0):
-				other, txt = txt.split(" ", 1)
-				if (finduser(other)):
-					respond(finduser(other), "(" + username(r) + ": " + txt + ")")
-					respond(r, "(" + username(r) + " to " + other + ": " + txt + ")")
-					print "Client '" + username(r) + "' said: '" + txt + "'"
+				othername, txt = txt.split(" ", 1)
+				other = finduser(othername)
+				if (other):
+					if (other != r):
+						respond(other, "" + username(r) + " (whispers): " + txt)
+					respond(r, "" + username(r) + " (to " + othername + "): " + txt)
+					print "Client '" + username(r) + "' whispered to '" + othername \
+					+ "': '" + txt + "'"
 				else:
 					respond(r, "% Failure: unknown user '" + other + "'.")
 					print "Client '" + username(r) + "' tried: '" + txt + "'; failed."
@@ -76,7 +78,7 @@ def handle_msg(r, msg):
 				"'/whisper <user> <message>'.")
 				print "Client '" + username(r) + "' tried: '" + txt + "'; failed."
 		elif (cmd == "list"):
-			respond(r, "% Connected users: " + listofusers())
+			respond(r, "% Connected users: " + listofusers() + ".")
 			print "Client '" + username(r) + "' asked for a list of users."
 		elif (cmd == "nick"):
 			if (txt.isalnum()):
@@ -131,8 +133,10 @@ def serve(port, cert, key):
 			if (r == s):
 				c, addr = s.accept()
 				broadcast("++ " + username(c) + " connected.")
-				print "Client '" + username(c) + "' at " + str(addr) + " connected."
 				connected.append(c)
+				respond(c, "% Welcome, " + username(c) + "!")
+				respond(c, "% Connected users: " + listofusers() + ".")
+				print "Client '" + username(c) + "' at " + str(addr) + " connected."
 			else:
 				msg = r.recv(256)
 				if (len(msg) > 0):

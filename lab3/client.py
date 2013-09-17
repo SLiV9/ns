@@ -21,6 +21,8 @@ def loop(port, cert):
 
 	# The following code explains how to use the GUI.
 	w = MainWindow()
+	w.writeln("[ Connected to server. ]")
+
 	# update() returns false when the user quits or presses escape.
 	while (w.update()):
 
@@ -28,12 +30,13 @@ def loop(port, cert):
 		line = w.getline()
 		if line:
 			# If the user did not specify a command, assume /say.
-			w.writeln("> " + line)
 			if (isconnected):
 				if (line.find("/") == 0):
-					s.send(line)
+					s.send(line + "\n")
 				else:
-					s.send("/say " + line)
+					s.send("/say " + line + "\n")
+			else:
+				w.writeln("[ Not connected. ]")
 			#end if isconnected
 		#end if line
 
@@ -43,7 +46,7 @@ def loop(port, cert):
 			for r in rrdy:
 				msg = r.recv(256)
 				if (len(msg) > 0):
-					w.writeln("< " + msg)
+					w.writeln(msg)
 				else:
 					w.writeln("[ Connection to server lost. ]")
 					isconnected = False

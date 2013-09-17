@@ -71,7 +71,7 @@ def handle_msg(r, msg):
 					print "Client '" + username(r) + "' whispered to '" + othername \
 					+ "': '" + txt + "'"
 				else:
-					respond(r, "% Failure: unknown user '" + other + "'.")
+					respond(r, "% Failure: unknown user '" + othername + "'.")
 					print "Client '" + username(r) + "' tried: '" + txt + "'; failed."
 			else:
 				respond(r, "% Failure: invalid syntax. Correct syntax: "
@@ -81,21 +81,21 @@ def handle_msg(r, msg):
 			respond(r, "% Connected users: " + listofusers() + ".")
 			print "Client '" + username(r) + "' asked for a list of users."
 		elif (cmd == "nick"):
-			if (txt.isalnum()):
-				newname = txt
+			newname = txt.rstrip()
+			if (newname.isalnum()):
 				if (not finduser(newname)):
 					oldname = username(r)
 					set_username(r, newname)
-					broadcast("~~ " + oldname + " changed nick to " + newname + ".")
+					broadcast("== " + oldname + " changed nickname to " + newname + ".")
 					print "Client '" + oldname + "' changed nick to '" \
 					+ txt + "'."
 				else:
-					respond(r, "% Failure: name '" + newname + "' already taken.")
+					respond(r, "% Failure: nickname '" + newname + "' already taken.")
 					print "Client '" + username(r) + "' tried to change nick to '" \
 					+ newname + "'; failed."
 			else:
-				respond(r, "% Failure: invalid syntax. Correct syntax: "
-				"'/nick <name>', where <name> alphanumeric.")
+				respond(r, "% Failure: invalid syntax or not alphanumeric. "
+				"Correct syntax: '/nick <name>'.")
 				print "Client '" + username(r) + "' tried to empty nick; failed."
 		else:
 			respond(r, "% Failure: unknown command '" + cmd + "'.")
@@ -139,6 +139,7 @@ def serve(port, cert, key):
 				print "Client '" + username(c) + "' at " + str(addr) + " connected."
 			else:
 				msg = r.recv(256)
+				msg = msg.rstrip()
 				if (len(msg) > 0):
 					# msg is an actual message from a client; handle it
 					handle_msg(r, msg)

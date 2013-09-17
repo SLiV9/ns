@@ -45,6 +45,7 @@ def loop(port, cert):
 			rrdy, wrdy, err = select.select([s], [], [], 0)
 			for r in rrdy:
 				msg = r.recv(256)
+				msg = msg.rstrip()
 				if (len(msg) > 0):
 					w.writeln(msg)
 				else:

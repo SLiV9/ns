@@ -1,6 +1,8 @@
 ## Netwerken en Systeembeveiliging Lab 3 - Chat Room (Server)
-## NAME:
-## STUDENT ID:
+## NAME: Sander in 't Veld
+## STUDENT ID: 10277935
+import socket
+import select
 
 def serve(port, cert, key):
 	"""
@@ -9,8 +11,27 @@ def serve(port, cert, key):
 	cert: public certificate (bonus task)
 	key: private key (bonus task)
 	"""
-	pass
+	print "[ server ]\n"
 
+	## Get socket.
+	s = socket.socket()
+	host = socket.gethostname()
+	s.bind((host, port))
+	## Set SO_REUSEADDR to prevent "socket already in use" errors during testing.
+	s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+	print "Listening as {h} on port {p}...".format(h=host, p=port)
+
+	connected = [s]
+	s.listen(1)
+	while True:
+		rrdy, wrdy, err = select.select(connected, [], [])
+		for c in rrdy:
+			pass
+		#end for c
+	#end while true
+
+	print "\n[ done ]"
+	return
 
 ## Command line parser.
 if __name__ == '__main__':

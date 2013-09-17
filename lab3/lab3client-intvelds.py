@@ -1,6 +1,6 @@
 ## Netwerken en Systeembeveiliging Lab 3 - Chat Room (Client)
-## NAME:
-## STUDENT ID:
+## NAME: Sander in 't Veld
+## STUDENT ID: 10277935
 from gui import MainWindow
 
 def loop(port, cert):

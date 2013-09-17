@@ -19,15 +19,13 @@ def serve(port, public_html, cgibin):
 	s = socket.socket()
 	host = socket.gethostname()
 	s.bind((host, port))
-	## Set SO_REUSEADDR to prevent "socket already in use" errors during testing.
-	s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 	
-	print "Listening as {h} on port {p}...".format(h=host, p=port)
+	print "Listening as " + str(host) + " on port " + str(port) + "..."
 	
 	s.listen(1)
 	while True:
 		c, addr = s.accept()
-		print "A client at {a} connected.".format(a=addr)
+		print "A client at " + str(addr) + " connected."
 		print "\t[start]"
 
 		msg, leftover = getline(c, "")

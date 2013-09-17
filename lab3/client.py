@@ -1,6 +1,8 @@
 ## Netwerken en Systeembeveiliging Lab 3 - Chat Room (Client)
 ## NAME: Sander in 't Veld
 ## STUDENT ID: 10277935
+import socket
+import select
 from gui import MainWindow
 
 def loop(port, cert):
@@ -9,16 +11,50 @@ def loop(port, cert):
 	port: port to connect to.
 	cert: public certificate (bonus task)
 	"""
+
+	host = "127.0.1.1"
+
+	# Connect to the server.
+	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	s.connect((host, port))
+	isconnected = True
+
 	# The following code explains how to use the GUI.
 	w = MainWindow()
 	# update() returns false when the user quits or presses escape.
-	while w.update():
-		# if the user entered a line getline() returns a string.
+	while (w.update()):
+
+		# If the user entered a line getline() returns a string.
 		line = w.getline()
 		if line:
-			w.writeln(line)
+			# If the user did not specify a command, assume /say.
+			w.writeln("> " + line)
+			if (isconnected):
+				if (line.find("/") == 0):
+					s.send(line)
+				else:
+					s.send("/say " + line)
+			#end if isconnected
+		#end if line
 
+		# if s is readable, read
+		if (isconnected):
+			rrdy, wrdy, err = select.select([s], [], [], 0)
+			for r in rrdy:
+				msg = r.recv(256)
+				if (len(msg) > 0):
+					w.writeln("< " + msg)
+				else:
+					w.writeln("[ Connection to server lost. ]")
+					isconnected = False
+			#end for r
+		#end if isconnected
 
+	#end while update
+
+	# Close connection.
+	s.close()
+	return
 
 ## Command line parser.
 if __name__ == '__main__':

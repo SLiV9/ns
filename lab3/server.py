@@ -4,6 +4,45 @@
 import socket
 import select
 
+connected = []
+usernamelist = {}
+
+def username(r):
+	return usernamelist.get(id(r), str(id(r)))
+
+def broadcast(msg):
+	for r in connected:
+		r.send(msg)
+	return
+
+def respond(r, msg):
+	r.send(msg)
+	return
+
+def handle_msg(r, msg):
+	if (msg.find("/") == 0):
+		msg = msg[1:]
+
+		if (msg.find(" ") > 0):
+			cmd, txt = msg.split(" ", 1)
+		else:
+			cmd = msg
+			txt = ""
+		
+		if (cmd == "say"):
+			broadcast("" + username(r) + ": " + txt + "")
+			print "Client '" + username(r) + "' said: '" + txt + "'"
+		else:
+			respond(r, "(Failure: unknown command '" + cmd + "'.)")
+			print "Client '" + username(r) + "' tried unknown command '" \
+			+ cmd + "'; failed."
+		#end if cmd
+
+	else:
+		print "Client '" + username(r) + "' tried: '" + msg + "'; failed."
+	return
+
+# Main method.
 def serve(port, cert, key):
 	"""
 	Chat server entry point.
@@ -21,13 +60,28 @@ def serve(port, cert, key):
 	s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 	print "Listening as {h} on port {p}...".format(h=host, p=port)
 
-	connected = [s]
 	s.listen(1)
 	while True:
+
+		rrdy, wrdy, err = select.select([s], [], [])
+		for s in rrdy:
+			c, addr = s.accept()
+			print "Client '" + username(c) + "' at " + str(addr) + " connected."
+			connected.append(c)
+		#end for s
+
 		rrdy, wrdy, err = select.select(connected, [], [])
-		for c in rrdy:
-			pass
-		#end for c
+		for r in rrdy:
+			msg = r.recv(256)
+			if (len(msg) > 0):
+				# msg is an actual message from a client; handle it
+				handle_msg(r, msg)
+			else:
+				connected.remove(r)
+				print "Client '" + username(r) + "' disconnected."
+			#end if empty msg
+		#end for r
+
 	#end while true
 
 	print "\n[ done ]"

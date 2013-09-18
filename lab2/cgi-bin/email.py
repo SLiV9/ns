@@ -1,7 +1,8 @@
 import sys
 import socket
+import urllib
 
-# Read the enviroment variables.
+## Read the enviroment variables.
 env = {}
 
 args = sys.stdin.read()
@@ -13,7 +14,7 @@ while (args.find("\r\n") >= 0):
 	#end if find =
 #end while
 
-# Read the parameters.
+## Read the parameters.
 querystring = env["QUERY_STRING"]
 param = {}
 
@@ -27,11 +28,13 @@ while (len(querystring) > 0):
 	
 	if (segm.find("=") >= 0):
 		pname, pval = segm.split("=", 1)
-		param[pname] = pval
+		## unquote to replace %40 -> @ and %0A -> \n, etc.
+		## also replace + with sp
+		param[pname] = urllib.unquote(pval).replace("+", " ")
 	#end if find =
 #end while
 
-# Get a full line of code from the buffer, that is until a CRLF (or LF).
+## Get a full line of code from the buffer, that is until a CRLF (or LF).
 def getline(s, leftover):
 	msg = leftover
 	endx = msg.find("\n")
@@ -78,12 +81,12 @@ def check_ok(status, okcodes, failcodes):
 	else:
 		return "\t(Unexpected status. Quiting...)\r\n"
 
-# Run the SMTP protocol.
+## Run the SMTP protocol.
 def run_smtp(s, param):
 	log = ""
 	leftover = ""
 
-	# Wait for server to send greeting.
+	## Wait for server to send greeting.
 	last = False
 	while (not last):
 		status, last, text, leftover = getline(s, leftover)
@@ -93,7 +96,7 @@ def run_smtp(s, param):
 		log += rep
 		return log
 
-	# Send extended HELLO.
+	## Send extended HELLO.
 	fqdn = socket.getfqdn()
 	log += send_cmd(s, "EHLO " + fqdn)
 
@@ -106,7 +109,7 @@ def run_smtp(s, param):
 		log += rep
 		return log
 
-	# If Authentication is enabled, send STARTTLS command.
+	## If Authentication is enabled, send STARTTLS command.
 	auth = param.get("auth", "none")
 	if (auth == "tls"):
 		log += send_cmd(s, "STARTTLS ")
@@ -123,7 +126,7 @@ def run_smtp(s, param):
 		return log
 	#end if tls
 
-	# Send MAIL (FROM) command.
+	## Send MAIL (FROM) command.
 	frm = param.get("from", "unknown")
 	log += send_cmd(s, "MAIL FROM:<" + frm + ">")
 
@@ -136,7 +139,7 @@ def run_smtp(s, param):
 		log += rep
 		return log
 
-	# Send RECIPIENT (TO) command.
+	## Send RECIPIENT (TO) command.
 	to = param.get("to", "unknown")
 	log += send_cmd(s, "RCPT TO:<" + to + ">")
 
@@ -148,20 +151,70 @@ def run_smtp(s, param):
 	if (len(rep) > 0):
 		log += rep
 		return log
+
+	## Send DATA command.
+	log += send_cmd(s, "DATA")
+
+	last = False
+	while (not last):
+		status, last, text, leftover = getline(s, leftover)
+		log += print_reply(status, last, text)
+	rep = check_ok(status, {"354"}, {"451", "554", "503"})
+	if (len(rep) > 0):
+		log += rep
+		return log
+
+	## Determine the actual data.
+	frmln = "From: <" + frm + ">"
+	toln = "To: <" + to + ">"
+	subjln = "Subject: " + param.get("subject", "untitled") + ""
+
+	bdy = param.get("body", "")
+	if (bdy.find("\n") >= 0):
+		lns = bdy.split("\n")
+	else:
+		lns = []
+	#end if find \n
+
+	data = [frmln, toln, subjln, ""]
+	for ln in lns:
+		data.append(ln.rstrip())
+	#end for
+
+	## Send the actual data.
+	for d in data:
+		log += send_cmd(s, d)
+	#end while
+
+	## Send the 'end of data' command.
+	log += send_cmd(s, ".")
+
+	last = False
+	while (not last):
+		status, last, text, leftover = getline(s, leftover)
+		log += print_reply(status, last, text)
+	rep = check_ok(status, {"250"}, {"552", "554", "451", "452"})
+	if (len(rep) > 0):
+		log += rep
+		return log
+
+	## Send the QUIT command.
+	log += send_cmd(s, "QUIT")
+
+	last = False
+	while (not last):
+		status, last, text, leftover = getline(s, leftover)
+		log += print_reply(status, last, text)
+	rep = check_ok(status, {"221"}, {})
+	if (len(rep) > 0):
+		log += rep
+		return log
 	
+	## Transaction succesful.
 	return log
 
 body = "[ SMTP ]\r\n\r\n"
 ## START
-
-body += "{ from: " + param.get("from", "<unknown>") + " }\r\n"
-body += "{ to: " + param.get("to", "<unknown>") + " }\r\n"
-body += "{ body: " + param.get("body", "<unknown>") + " }\r\n"
-body += "{ server: " + param.get("server", "<unknown>") + " }\r\n"
-body += "{ auth: " + param.get("auth", "<unknown>") + " }\r\n"
-body += "{ username: " + param.get("username", "<unknown>") + " }\r\n"
-body += "{ password: " + param.get("password", "<unknown>") + " }\r\n"
-body += "\r\n"
 
 if (len(param.get("server", "")) == 0):
 	body += "Fatal error: no server specified.\r\n"

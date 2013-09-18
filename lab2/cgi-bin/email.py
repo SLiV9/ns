@@ -109,6 +109,7 @@ def run_smtp(s, param):
 		log += rep
 		return log
 
+	"""
 	## If Authentication is enabled, send STARTTLS command.
 	auth = param.get("auth", "none")
 	if (auth == "tls"):
@@ -125,6 +126,7 @@ def run_smtp(s, param):
 		
 		return log
 	#end if tls
+	"""
 
 	## Send MAIL (FROM) command.
 	frm = param.get("from", "unknown")

@@ -154,7 +154,7 @@ int main(int argc, char *argv[]) {
 	
 	
 	//DONE set here the TCP Socket Type, the disable of ACK and the DropTailQueue size when is needed
-	tcpSocketType = TypeId::LookupByName("ns3::TcpTahoe");
+	tcpSocketType = TypeId::LookupByName("ns3::TcpReno");
 	Config::SetDefault("ns3::TcpL4Protocol::SocketType", StringValue("ns3::TcpTahoe"));
 	
 	Config::SetDefault ("ns3::TcpSocket::DelAckCount", UintegerValue (1));

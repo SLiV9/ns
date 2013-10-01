@@ -59,10 +59,12 @@ int main(int argc, char *argv[]) {
 	
 	// Latency (in milliseconds).
 	int latency = 64;
+	
 	// Maximum Receive Window (in bytes).
 	int max_rwin = 16384;
 	// Server start time.
 	double serverStartTime = 0.5;
+	DataRate clientSendRate = DataRate("2Mbps");
 
 
 	//enable logging at level INFO
@@ -83,7 +85,7 @@ int main(int argc, char *argv[]) {
 
 	//DONE Create pointToPoint channel with specified data rate and delay, without IP addresses first
 	PointToPointHelper pointToPoint;
-	pointToPoint.SetDeviceAttribute("DataRate", StringValue("3Mbps"));
+	pointToPoint.SetDeviceAttribute("DataRate", StringValue("3.2Mbps"));
 	std::stringstream ss;
 	ss << "" << latency << "ms";
 	pointToPoint.SetChannelAttribute("Delay", StringValue(ss.str()));
@@ -129,7 +131,7 @@ int main(int argc, char *argv[]) {
 	OnOffHelper onOffHelper("ns3::TcpSocketFactory", serverSinkAddress);
   onOffHelper.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=1]"));
   onOffHelper.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0]"));
-	onOffHelper.SetConstantRate(DataRate("2Mbps"));
+	onOffHelper.SetConstantRate(clientSendRate);
   AddressValue remoteAddress(InetSocketAddress(serverIPAddress, port));
   onOffHelper.SetAttribute("Remote", remoteAddress);
 	ApplicationContainer clientApp = onOffHelper.Install(clientNode);

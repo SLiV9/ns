@@ -142,7 +142,7 @@ int main(int argc, char *argv[]) {
 
 	//DONE define your Simulation parameters
 	TypeId tcpSocketType;
-	int droptailQueueSize;
+	int droptailQueueSize = 40;
 	
 	Ptr<Node> clientNode, serverNode;
 	double clientStartTime = 1.0;
@@ -159,7 +159,6 @@ int main(int argc, char *argv[]) {
 	
 	Config::SetDefault ("ns3::TcpSocket::DelAckCount", UintegerValue (1));
 	
-	droptailQueueSize = 100;
 	Config::SetDefault("ns3::DropTailQueue::MaxPackets", UintegerValue (droptailQueueSize));
 	
 	//DONE print here the tcp socket type and the droptail Queue Size
@@ -220,7 +219,8 @@ int main(int argc, char *argv[]) {
 	Ptr<Socket> clientSocket = Socket::CreateSocket(clientNode, TcpSocketFactory::GetTypeId());
 	
 	//DONE Monitor Congestion window
-	clientSocket -> TraceConnectWithoutContext (" CongestionWindow " , MakeCallback (&CWndTracer ));
+	clientSocket->TraceConnectWithoutContext("CongestionWindow", 
+		MakeCallback(&CWndTracer));
 	
 	// Create an application
 	Ptr<MyApp> clientApp = CreateObject<MyApp>();

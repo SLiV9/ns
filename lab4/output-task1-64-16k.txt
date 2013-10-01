@@ -1,0 +1,10 @@
+Latency: 64ms
+Maximum receiving window: 16384 bytes
+Client address : 10.1.1.1
+Server address : 10.1.1.2
+Flow 1 (10.1.1.1 -> 10.1.1.2)
+Start running time: 1
+Stop running time:  49.9586
+  Tx Bytes:   6344720
+  Rx Bytes:   6336656
+  Throughput: 1.03543 Mbps

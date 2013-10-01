@@ -61,10 +61,10 @@ int main(int argc, char *argv[]) {
 	int latency = 64;
 	
 	// Maximum Receive Window (in bytes).
-	int max_rwin = 16384;
+	int max_rwin = 51200;
 	// Server start time.
 	double serverStartTime = 0.5;
-	DataRate clientSendRate = DataRate("2Mbps");
+	DataRate clientSendRate = DataRate("3.2Mbps");
 
 
 	//enable logging at level INFO
